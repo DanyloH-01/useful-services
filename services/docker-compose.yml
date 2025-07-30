@@ -77,7 +77,7 @@ services:
     networks:
       - caddy
     environment:
-      - WG_HOST=vpn.example.com
+      - WG_HOST=${WG_HOST}
       - PASSWORD=${WG_PASSWORD_HASH}
     ports:
       - '51820:51820/udp'
@@ -92,12 +92,6 @@ services:
       - net.ipv4.ip_forward=1
       - net.ipv6.conf.all.forwarding=1
     restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          memory: 2g
-        reservations:
-          memory: 500m
 
   #Immich
   immich-server:

@@ -77,7 +77,7 @@ Edit the following files inside the `./env/` directory:
 * `affine.env`
 
 Do not delete `deploy`-block in GitLab. This may result in loss of RAM!<br>
-If necessary, add a deploy-block to each service for resource limitation/reservation
+If necessary, add a deploy-block to other services for resource limitation/reservation
 ### 3. Generate a hashed password for WireGuard
 
 Use the included `hash_gen.py` script:

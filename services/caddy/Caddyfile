@@ -1,0 +1,18 @@
+git.example.com{
+    tls /certs/fullchain.crt /certs/private.key
+    reverse_proxy gitlab:8000
+}
+vpn.example.com{
+    tls /certs/fullchain.crt /certs/private.key
+    reverse_proxy wg-easy:51821
+}
+
+notes.example.com{
+    tls /certs/fullchain.crt /certs/private.key
+    reverse_proxy affine:4000
+}
+
+media.example.com{
+    tls /certs/fullchain.crt /certs/private.key
+    reverse_proxy immich-server:6781
+}

@@ -1,0 +1,245 @@
+version: '3.8'
+
+name: useful-services
+
+services:
+  # GitLab
+  gitlab:
+    image: gitlab/gitlab-ce:latest
+    container_name: gitlab
+    hostname: ${HOSTNAME}
+    restart: always
+    networks:
+      - caddy
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        #####################################
+        #########Basic configuration#########
+        #####################################
+        external_url '${EXTERNAL_URL}'
+        nginx['enable'] = ${NGINX_ENABLE}
+        letsencrypt['enable'] = ${LETSENCRYPT_ENABLE}
+        
+        # DO NOT EDIT THE NEXT 3 LINES WITHOUT SYNCING IT WITH `Caddyfile`
+        gitlab_rails['trusted_proxies'] = ['caddy']
+        gitlab_workhorse['listen_network'] = 'tcp'
+        gitlab_workhorse['listen_addr'] = '0.0.0.0:8000'
+        
+        ####################################
+        #########SMTP configuration#########
+        ####################################
+        gitlab_rails['smtp_enable'] = true
+        gitlab_rails['smtp_address'] = '${SMTP_ADDRESS}'
+        gitlab_rails['smtp_port'] = ${SMTP_PORT}
+        gitlab_rails['smtp_user_name'] = '${SMTP_USER_NAME}'
+        gitlab_rails['smtp_password'] = '${SMTP_PASSWORD}'
+        gitlab_rails['smtp_domain'] = '${SMTP_DOMAIN}'
+        gitlab_rails['smtp_authentication'] = '${SMTP_AUTHENTICATION}'
+        gitlab_rails['smtp_enable_starttls_auto'] = ${SMTP_ENABLE_STARTTLS_AUTO}
+        gitlab_rails['smtp_tls'] = ${SMTP_TLS}
+        gitlab_rails['gitlab_email_from'] = '${GITLAB_EMAIL_FROM}'
+        gitlab_rails['gitlab_email_display_name'] = ${GITLAB_EMAIL_DISPLAY_NAME}
+        gitlab_rails['gitlab_email_reply_to'] = '${GITLAB_EMAIL_REPLY_TO}'
+
+        #####################################
+        ##Personal Access Tokens Expiration##
+        #####################################
+        gitlab_rails['personal_access_token_expiration_enforced'] = true
+        gitlab_rails['personal_access_token_expiration'] = ${PERSONAL_ACCESS_TOKEN_EXPIRATION}
+        gitlab_rails['access_token_expiration_enforced'] = true
+        gitlab_rails['access_token_expiration'] = ${ACCESS_TOKEN_EXPIRATION}
+
+        ####################################
+        #########Session expiration#########
+        ####################################
+        gitlab_rails['session_expire_delay'] = ${SESSION_EXPIRE_DELAY}
+    ports:
+      - '2222:22'
+    expose:
+      - '8000'
+    env_file:
+      - ./env/gitlab.env
+    volumes:
+      - ${CONFIG_LOCATION}:/etc/gitlab
+      - ${LOGS_LOCATION}:/var/log/gitlab
+      - ${DATA_LOCATION}:/var/opt/gitlab
+    deploy:
+      resources:
+        limits:
+          memory: 8g
+        reservations:
+          memory: 4g
+
+  # WireGuard
+  wg-easy:
+    image: weejewel/wg-easy
+    container_name: wg-easy
+    networks:
+      - caddy
+    environment:
+      - WG_HOST=vpn.example.com
+      - PASSWORD=${WG_PASSWORD_HASH}
+    ports:
+      - '51820:51820/udp'
+    expose:
+      - '51821'
+    volumes:
+      - ${WG_CONFIG_LOCATION}:/etc/wireguard
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv6.conf.all.forwarding=1
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+        reservations:
+          memory: 500m
+
+  #Immich
+  immich-server:
+    container_name: immich_server
+    image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION:-release}
+    # extends:
+    #   file: hwaccel.transcoding.yml
+    #   service: cpu # set to one of [nvenc, quicksync, rkmpp, vaapi, vaapi-wsl] for accelerated transcoding
+    volumes:
+      # Do not edit the next line. If you want to change the media storage location on your system, edit the value of UPLOAD_LOCATION in the .env file
+      - ${UPLOAD_LOCATION}:/usr/src/app/upload
+      - /etc/localtime:/etc/localtime:ro
+    env_file:
+      - ./env/immich.env
+    ports:
+      - '2283:2283'
+    expose:
+      - '6781'
+    depends_on:
+      - immich-redis
+      - database
+    restart: always
+
+  immich-redis:
+    container_name: immich_redis
+    image: docker.io/valkey/valkey:8-bookworm@sha256:facc1d2c3462975c34e10fccb167bfa92b0e0dbd992fc282c29a61c3243afb11
+    healthcheck:
+      test: redis-cli ping || exit 1
+    restart: always
+
+  database:
+    container_name: immich_postgres
+    image: ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0@sha256:5f6a838e4e44c8e0e019d0ebfe3ee8952b69afc2809b2c25f7b0119641978e91
+    environment:
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_DB: ${DB_DATABASE_NAME}
+      POSTGRES_INITDB_ARGS: '--data-checksums'
+      # Uncomment the DB_STORAGE_TYPE: 'HDD' var if your database isn't stored on SSDs
+      # DB_STORAGE_TYPE: 'HDD'
+    env_file:
+      - ./env/immich.env
+    volumes:
+      # Do not edit the next line. If you want to change the database storage location on your system, edit the value of DB_DATA_LOCATION in the .env file
+      - ${DB_DATA_LOCATION}:/var/lib/postgresql/data
+    shm_size: 128mb
+    restart: always
+
+  # AFFiNE
+  affine:
+    image: ghcr.io/toeverything/affine:${AFFINE_REVISION:-stable}
+    container_name: affine_server
+    ports:
+      - '${PORT:-3010}:3010'
+    expose:
+      - '4000'
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      affine_migration:
+        condition: service_completed_successfully
+    volumes:
+      # custom configurations
+      - ${UPLOAD_LOCATION}:/root/.affine/storage
+      - ${CONFIG_LOCATION}:/root/.affine/config
+    env_file:
+      - ./env/affine.env
+    environment:
+      - REDIS_SERVER_HOST=redis
+      - DATABASE_URL=postgresql://${DB_USERNAME}:${DB_PASSWORD}@postgres:5432/${DB_DATABASE:-affine}
+      - AFFINE_INDEXER_ENABLED=false
+    restart: unless-stopped
+
+  affine_migration:
+    image: ghcr.io/toeverything/affine:${AFFINE_REVISION:-stable}
+    container_name: affine_migration_job
+    volumes:
+      # custom configurations
+      - ${UPLOAD_LOCATION}:/root/.affine/storage
+      - ${CONFIG_LOCATION}:/root/.affine/config
+    command: [ 'sh', '-c', 'node ./scripts/self-host-predeploy.js' ]
+    env_file:
+      - ./env/affine.env
+    environment:
+      - REDIS_SERVER_HOST=redis
+      - DATABASE_URL=postgresql://${DB_USERNAME}:${DB_PASSWORD}@postgres:5432/${DB_DATABASE:-affine}
+      - AFFINE_INDEXER_ENABLED=false
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  affine_redis:
+    image: redis
+    container_name: affine_redis
+    healthcheck:
+      test: [ 'CMD', 'redis-cli', '--raw', 'incr', 'ping' ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: affine_postgres
+    volumes:
+      - ${DB_DATA_LOCATION}:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE:-affine}
+      POSTGRES_INITDB_ARGS: '--data-checksums'
+      # you better set a password for you database
+      # or you may add 'POSTGRES_HOST_AUTH_METHOD=trust' to ignore postgres security policy
+      POSTGRES_HOST_AUTH_METHOD: trust
+    healthcheck:
+      test:
+        [ 'CMD', 'pg_isready', '-U', "${DB_USERNAME}", '-d', "${DB_DATABASE:-affine}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Caddy
+  caddy:
+    image: caddy:latest
+    container_name: caddy
+    restart: unless-stopped
+    networks:
+      - caddy
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile
+      - ./caddy/data:/data
+      - ./caddy/config:/config
+      - ./caddy/certs:/certs
+
+networks:
+  caddy:
+    driver: bridge

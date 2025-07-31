@@ -34,9 +34,11 @@ useful-services/
 │   ├── docker-compose.yml
 │   ├── caddy/
 │   │   ├── Caddyfile
-│   │   └── certs/
-│   │       ├── fullchain.crt
-│   │       └── private.key
+│   │   ├── certs/
+│   │   │   ├── fullchain.crt
+│   │   │   └── private.key
+│   │   ├── config/
+│   │   └── data/
 │   ├── env/
 │   │   ├── gitlab.env
 │   │   ├── wire-guard.env

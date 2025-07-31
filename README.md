@@ -10,7 +10,7 @@ operating systems, software versions, etc. I plan to add various guides and <br>
 configuration templates for other systems or situations <br>
 (for example, using Let's Encrypt instead of certificates and keys).
 
-> Make sure, you have correct and official version of Docker Engine.<br>
+> Make sure, you have a correct and official version of Docker Engine.<br>
 > You can install it following [this guide](https://docs.docker.com/engine/install/)<br>
 > There are docs for [Immich](https://immich.app/docs/overview/welcome/) and [AFFiNE](https://docs.affine.pro/self-host-affine/)<br>
 
@@ -29,33 +29,37 @@ configuration templates for other systems or situations <br>
 > `Storage` is only relevant if the location environment variables have not been changed.
 
 ```
-useful-services/
-├── docker-compose.yml
-├── caddy/
-│   ├── Caddyfile
-│   └── certs/
-│       ├── fullchain.crt
-│       └── private.key
-├── env/
-│   ├── gitlab.env
-│   ├── wire-guard.env
-│   ├── immich.env
-│   └── affine.env
-├── storage/                        | Will be created after services are started
-│   ├── gitlab/                     | Will be created after services are started
-│   │   ├── config/                 | Will be created after services are started
-│   │   ├── logs/                   | Will be created after services are started
-│   │   └── data/                   | Will be created after services are started
-│   ├── affine/                     | Will be created after services are started
-│   │   ├── postgres/               | Will be created after services are started
-│   │   │   └── pgdata/             | Will be created after services are started
-│   │   ├── storage/                | Will be created after services are started
-│   │   └── config/                 | Will be created after services are started
-│   ├── immich/                     | Will be created after services are started
-│   │   ├── library/                | Will be created after services are started
-│   │   └── postgres/               | Will be created after services are started
-│   └── wg-config/                  | Will be created after services are started
-└── hash_gen.py
+useful-services
+├── services/
+│   ├── docker-compose.yml
+│   ├── caddy/
+│   │   ├── Caddyfile
+│   │   └── certs/
+│   │       ├── fullchain.crt
+│   │       └── private.key
+│   ├── env/
+│   │   ├── gitlab.env
+│   │   ├── wire-guard.env
+│   │   ├── immich.env
+│   │   └── affine.env
+│   ├── storage/                        | Will be created after services are started
+│   │   ├── gitlab/                     | Will be created after services are started
+│   │   │   ├── config/                 | Will be created after services are started
+│   │   │   ├── logs/                   | Will be created after services are started
+│   │   │   └── data/                   | Will be created after services are started
+│   │   ├── affine/                     | Will be created after services are started
+│   │   │   ├── postgres/               | Will be created after services are started
+│   │   │   │   └── pgdata/             | Will be created after services are started
+│   │   │   ├── storage/                | Will be created after services are started
+│   │   │   └── config/                 | Will be created after services are started
+│   │   ├── immich/                     | Will be created after services are started
+│   │   │   ├── library/                | Will be created after services are started
+│   │   │   └── postgres/               | Will be created after services are started
+│   │   └── wg-config/                  | Will be created after services are started
+│   └── hash_gen.py
+├── .gitignore
+├── LICENSE
+└── README.md
 ```
 ---
 ## Getting Started

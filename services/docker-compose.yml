@@ -25,6 +25,7 @@ services:
       - ${AFFINE_UPLOAD_LOCATION}:/root/.affine/storage
       - ${AFFINE_CONFIG_LOCATION}:/root/.affine/config
     environment:
+      - AFFINE_SERVER_EXTERNAL_URL = ${AFFINE_SERVER_EXTERNAL_URL}
       - REDIS_SERVER_HOST=affine_redis
       - DATABASE_URL=postgresql://${AFFINE_DB_USERNAME}:${AFFINE_DB_PASSWORD}@affine_postgres:5432/${AFFINE_DB_DATABASE:-affine}
       - AFFINE_INDEXER_ENABLED=false

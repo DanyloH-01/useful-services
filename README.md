@@ -12,17 +12,18 @@ configuration templates for other systems or situations <br>
 
 > Make sure, you have a correct and official version of Docker Engine.<br>
 > You can install it following [this guide](https://docs.docker.com/engine/install/)<br>
-> There are docs for [Immich](https://immich.app/docs/overview/welcome/) and [AFFiNE](https://docs.affine.pro/self-host-affine/)<br>
-
+> There are docs for [Immich](https://immich.app/docs/overview/welcome/), 
+> [AFFiNE](https://docs.affine.pro/self-host-affine/) and
+> [GitLab](https://docs.gitlab.com/install/docker/)
 
 ## Services
 
-| Service   | Subdomain            | Description                         |
-| --------- | -------------------- | ----------------------------------- |
-| GitLab CE | `git.example.com`    | Git hosting and DevOps platform     |
-| WireGuard | `vpn.example.com`    | VPN access via `wg-easy`            |
-| Immich    | `immich.example.com` | Self-hosted photo and video manager |
-| AFFiNE    | `affine.example.com` | Note-taking and documentation tool  |
+| Service   | Subdomain           | Description                         |
+| --------- |---------------------| ----------------------------------- |
+| GitLab CE | `git.example.com`   | Git hosting and DevOps platform     |
+| WireGuard | `vpn.example.com`   | VPN access via `wg-easy`            |
+| Immich    | `media.example.com` | Self-hosted photo and video manager |
+| AFFiNE    | `notes.example.com` | Note-taking and documentation tool  |
 ---
 ## Structure
 
@@ -30,38 +31,34 @@ configuration templates for other systems or situations <br>
 
 ```
 useful-services/
-├── services/
-│   ├── docker-compose.yml
-│   ├── caddy/
-│   │   ├── Caddyfile
-│   │   ├── certs/
-│   │   │   ├── fullchain.crt
-│   │   │   └── private.key
-│   │   ├── config/
-│   │   └── data/
-│   ├── env/
-│   │   ├── gitlab.env
-│   │   ├── wire-guard.env
-│   │   ├── immich.env
-│   │   └── affine.env
-│   ├── storage/                        | Will be created after services are started
-│   │   ├── gitlab/                     | Will be created after services are started
-│   │   │   ├── config/                 | Will be created after services are started
-│   │   │   ├── logs/                   | Will be created after services are started
-│   │   │   └── data/                   | Will be created after services are started
-│   │   ├── affine/                     | Will be created after services are started
-│   │   │   ├── postgres/               | Will be created after services are started
-│   │   │   │   └── pgdata/             | Will be created after services are started
-│   │   │   ├── storage/                | Will be created after services are started
-│   │   │   └── config/                 | Will be created after services are started
-│   │   ├── immich/                     | Will be created after services are started
-│   │   │   ├── library/                | Will be created after services are started
-│   │   │   └── postgres/               | Will be created after services are started
-│   │   └── wg-config/                  | Will be created after services are started
-│   └── hash_gen.py
 ├── .gitignore
 ├── LICENSE
-└── README.md
+├── README.md
+└── services/
+    ├── caddy/
+    │   ├── Caddyfile
+    │   ├── certs/
+    │   │   ├── fullchain.crt
+    │   │   └── private.key
+    │   ├── config/
+    │   └── data/
+    ├── docker-compose.yml
+    ├── .env
+    ├── hash_gen.py
+    └── storage/                        | Will be created after services are started
+        ├── affine/                     | Will be created after services are started
+        │   ├── config/                 | Will be created after services are started
+        │   ├── postgres/               | Will be created after services are started
+        │   │   └── pgdata/             | Will be created after services are started
+        │   └── storage/                | Will be created after services are started
+        ├── gitlab/                     | Will be created after services are started
+        │   ├── config/                 | Will be created after services are started
+        │   ├── data/                   | Will be created after services are started
+        │   └── logs/                   | Will be created after services are started
+        ├── immich/                     | Will be created after services are started
+        │   ├── library/                | Will be created after services are started
+        │   └── postgres/               | Will be created after services are started
+        └── wg-config/                  | Will be created after services are started
 ```
 ---
 ## Getting Started
@@ -74,16 +71,14 @@ cd useful-services
 ```
 
 ### 2. Configure environment variables, docker-compose and Caddyfile
+
 You must replace `example.com` in the `Caddyfile` and .env-files with your domain.
 
-Edit the following files inside the `./env/` directory:
-* `gitlab.env`
-* `wire-guard.env`
-* `immich.env`
-* `affine.env`
+Edit environment variables in `.env` file.
 
 Do not delete `deploy`-block in GitLab. This may result in loss of RAM!<br>
 If necessary, add a deploy-block to other services for resource limitation/reservation
+
 ### 3. Generate a hashed password for WireGuard
 
 Use the included `hash_gen.py` script:
@@ -105,7 +100,7 @@ Point your subdomains to your machine's IP address if necessary:
 
 ### 5. Configure SSL/TLS Certification
 
-> You have to download TLS/SSL-Certificate and your private.key by your provider. <br>
+> You have to download SSL-Certificate and your private.key by your provider. <br>
 > Store it in `/useful-services/caddy/certs/`. Be careful with the names of your <br>
 > certificate and key. It should be either the same as in the Caddyfile or you must <br>
 > change references in the Caddyfile.
@@ -118,6 +113,11 @@ caddy/Caddyfile
 ```
 Update it to match your domain setup if necessary.
 
+### 6.Check syntax
+
+```bash
+docker compose config
+```
 
 ---
 ## Start the stack
@@ -126,6 +126,14 @@ Update it to match your domain setup if necessary.
 docker compose up -d
 ```
 ---
+
+## UPDATE / UPGRADE
+
+```bash
+docker compose down
+#Wait until all containers are stopped and removed
+docker compose pull
+```
 
 ## License
 

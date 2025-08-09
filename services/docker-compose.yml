@@ -7,8 +7,10 @@ services:
   affine:
     image: ghcr.io/toeverything/affine:${AFFINE_REVISION:-stable}
     container_name: affine_server
+    networks:
+      - caddy
     ports:
-      - '${PORT:-3010}:3010'
+      - '${AFFINE_PORT:-3010}:3010'
     expose:
       - '4000'
     depends_on:
@@ -24,13 +26,15 @@ services:
       - ${AFFINE_CONFIG_LOCATION}:/root/.affine/config
     environment:
       - REDIS_SERVER_HOST=affine_redis
-      - DATABASE_URL=postgresql://${AFFINE_DB_USERNAME}:${AFFINE_DB_PASSWORD}@postgres:5432/${AFFINE_DB_DATABASE:-affine}
+      - DATABASE_URL=postgresql://${AFFINE_DB_USERNAME}:${AFFINE_DB_PASSWORD}@affine_postgres:5432/${AFFINE_DB_DATABASE:-affine}
       - AFFINE_INDEXER_ENABLED=false
     restart: unless-stopped
 
   affine_migration:
     image: ghcr.io/toeverything/affine:${AFFINE_REVISION:-stable}
     container_name: affine_migration_job
+    networks:
+      - caddy
     volumes:
       # custom configurations
       - ${AFFINE_UPLOAD_LOCATION}:/root/.affine/storage
@@ -49,6 +53,8 @@ services:
   affine_redis:
     image: redis
     container_name: affine_redis
+    networks:
+      - caddy
     healthcheck:
       test: [ 'CMD', 'redis-cli', '--raw', 'incr', 'ping' ]
       interval: 10s
@@ -59,6 +65,8 @@ services:
   affine_postgres:
     image: pgvector/pgvector:pg16
     container_name: affine_postgres
+    networks:
+      - caddy
     volumes:
       - ${AFFINE_DB_DATA_LOCATION}:/var/lib/postgresql/data
     environment:
@@ -100,17 +108,17 @@ services:
         #########SMTP configuration#########
         ####################################
         gitlab_rails['smtp_enable'] = true
-        gitlab_rails['smtp_address'] = ${GITLAB_SMTP_ADDRESS}
+        gitlab_rails['smtp_address'] = "${GITLAB_SMTP_ADDRESS}"
         gitlab_rails['smtp_port'] = ${GITLAB_SMTP_PORT}
-        gitlab_rails['smtp_user_name'] = ${GITLAB_SMTP_USER_NAME}
-        gitlab_rails['smtp_password'] = ${GITLAB_SMTP_PASSWORD}
-        gitlab_rails['smtp_domain'] = ${GITLAB_SMTP_DOMAIN}
-        gitlab_rails['smtp_authentication'] = ${GITLAB_SMTP_AUTHENTICATION}
+        gitlab_rails['smtp_user_name'] = "${GITLAB_SMTP_USER_NAME}"
+        gitlab_rails['smtp_password'] = "${GITLAB_SMTP_PASSWORD}"
+        gitlab_rails['smtp_domain'] = "${GITLAB_SMTP_DOMAIN}"
+        gitlab_rails['smtp_authentication'] = '${GITLAB_SMTP_AUTHENTICATION}'
         gitlab_rails['smtp_enable_starttls_auto'] = ${GITLAB_SMTP_ENABLE_STARTTLS_AUTO}
         gitlab_rails['smtp_tls'] = ${GITLAB_SMTP_TLS}
-        gitlab_rails['gitlab_email_from'] = ${GITLAB_EMAIL_FROM}
-        gitlab_rails['gitlab_email_display_name'] = ${GITLAB_EMAIL_DISPLAY_NAME}
-        gitlab_rails['gitlab_email_reply_to'] = ${GITLAB_EMAIL_REPLY_TO}
+        gitlab_rails['gitlab_email_from'] = '${GITLAB_EMAIL_FROM}'
+        gitlab_rails['gitlab_email_display_name'] = 'GitLab -  Example Name'
+        gitlab_rails['gitlab_email_reply_to'] = '${GITLAB_EMAIL_REPLY_TO}'
 
         #####################################
         ##Personal Access Tokens Expiration##
@@ -142,6 +150,8 @@ services:
   #Immich
   immich-server:
     container_name: immich_server
+    networks:
+      - caddy
     image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION:-release}
     volumes:
       - ${IMMICH_UPLOAD_LOCATION}:/usr/src/app/upload
@@ -157,6 +167,8 @@ services:
 
   immich-redis:
     container_name: immich_redis
+    networks:
+      - caddy
     image: docker.io/valkey/valkey:8-bookworm@sha256:facc1d2c3462975c34e10fccb167bfa92b0e0dbd992fc282c29a61c3243afb11
     healthcheck:
       test: redis-cli ping || exit 1
@@ -164,6 +176,8 @@ services:
 
   immich_database:
     container_name: immich_postgres
+    networks:
+      - caddy
     image: ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0@sha256:5f6a838e4e44c8e0e019d0ebfe3ee8952b69afc2809b2c25f7b0119641978e91
     environment:
       POSTGRES_PASSWORD: ${IMMICH_DB_PASSWORD}
